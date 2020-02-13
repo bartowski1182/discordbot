@@ -1,17 +1,21 @@
+#!/usr/bin/env
 # bot.py
 import os
+import sys
 
 import discord
 import psycopg2
 from dotenv import load_dotenv
 from datetime import datetime
 from datetime import date
+import subprocess
 
 from discord.ext import commands
 
 load_dotenv()
 token = os.getenv('DISCORD_TOKEN')
 dbpass = os.getenv('DBPASS')
+admin = os.getenv('BOTADMIN')
 
 bot = commands.Bot(command_prefix='!')
 conn = psycopg2.connect(host="localhost", database="OeSL_team", user="postgres", password=dbpass)
@@ -134,7 +138,7 @@ async def playerinfo(ctx, *args):
 	cur = conn.cursor()
 	cur.execute('SELECT * from players where upper(name)=%s;', (playername, ))
 	playerTuple = cur.fetchone()
-	if playerTuple == None:
+	if playerTuple == None: #figure  out why this isn't none or something ? it's just dying instead
 		await ctx.send('Invalid player name "' + args + '"')
 		cur.close()
 		cur.commit()
@@ -143,6 +147,18 @@ async def playerinfo(ctx, *args):
 	await ctx.send(message)
 	cur.commit()
 	cur.close()
+
+@bot.command(name='reboot')
+async def reboot(ctx):
+	userid = str(ctx.author.id)
+	if userid !=str(admin):
+		return
+	
+	#process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
+	#output, error = process.communicate()
+	await ctx.send('Rebooting...')
+	os.execl(sys.executable, sys.executable, *sys.argv)
+	await ctx.send('failed')
 
 @bot.event
 async def on_command_error(ctx, error):

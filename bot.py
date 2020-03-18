@@ -38,6 +38,11 @@ async def pool(ctx, *args):
 	if ";" in str(args):
 		await ctx.send('no sql injection plz ty')
 		return
+	author = ""
+	if ctx.author.nick == None:
+		author = ctx.author.name
+	else:
+		author = ctx.author.nick
 	message = ""
 	cur = conn.cursor()
 	try:
@@ -46,9 +51,9 @@ async def pool(ctx, *args):
 				message = 'Use !pool to add, remove, or list champions\n!pool add [champion name] will add that champion to your pool\n!pool remove [champion name] will remove that champion from your pool\n!pool list <option:name> will list your champion pool or the pool of whoever you selected'
 			elif args[0] == 'list':
 				if len(args) < 2:
-					poolName = ''.join(ctx.author.nick) + '_pool'
+					poolName = ''.join(author).lower().replace(" ", "") + '_pool'
 				else:
-					poolName = args[1] + '_pool'
+					poolName = ''.join(args[1:]).lower() + '_pool'
 				cur.execute('SELECT * from ' + poolName + ';')
 				champlist = cur.fetchall()
 				if champlist == None:
@@ -59,21 +64,26 @@ async def pool(ctx, *args):
 				message = message[:-2]
 			elif args[0] == 'add' and len(args) > 1:
 				champion = args[1:]
-				cur.execute("INSERT INTO " + ''.join(ctx.author.nick) + "_pool VALUES (%s);", (' '.join(champion), ))
+				try:
+					cur.execute("INSERT INTO " + ''.join(author).lower().replace(" ", "") + "_pool VALUES (%s);", (' '.join(champion), ))
+				except Exception as error:
+					await ctx.send('Error: ' + error + ' type: ' + type(error))
 				#SQL = 'INSERT INTO %s VALUES (%s);'
 				#data = (''.join(ctx.author.nick), ' '.join(champion))
 				#cur.execute(SQL, data)
-				message = 'Added '+' '.join(champion)+' to ' + ctx.author.nick + '\'s champion pool!'
+				message = 'Added '+' '.join(champion)+' to ' + author + '\'s champion pool!'
 			elif args[0] == 'remove' and len(args) > 1:
 				champion = args[1:]
-				cur.execute('DELETE FROM '+''.join(ctx.author.nick)+'_pool where champ = \''+' '.join(champion)+'\';')
-				message = 'Removed '+' '.join(champion)+' from ' + ctx.author.nick + '\'s champion pool!'
+				cur.execute('DELETE FROM '+''.join(author).lower().replace(" ", "") +'_pool where champ = \''+' '.join(champion)+'\';')
+				message = 'Removed '+' '.join(champion)+' from ' + author + '\'s champion pool!'
 			else:
 				message = 'Invalid syntax'
 		else:
 			message = 'need args yo'
 	except IndexError:
 		message = 'Invalid number of arguments, see help message'
+	except Exception as error:
+		message = 'Error: ' + error + ' type: ' + type(error)
 	conn.commit()
 	cur.close()	
 	await ctx.send(message)

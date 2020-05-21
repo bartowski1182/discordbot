@@ -1,5 +1,6 @@
 #!/usr/bin/env
 # bot.py
+from urllib import parse
 import pickle
 import os
 import sys
@@ -7,7 +8,7 @@ import asyncio
 import discord
 import psycopg2
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, timedelta
 from datetime import date
 import subprocess
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -21,6 +22,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from asgiref.sync import async_to_sync
 from urllib.parse import urlparse
 from urllib.parse import unquote
+import signal
 
 from io import BytesIO
 
@@ -31,10 +33,17 @@ admin = os.getenv('BOTADMIN')
 clientId = os.getenv('CLIENTID')
 accessToken = os.getenv('ACCESS_TOKEN')
 ericChannel = os.getenv('ERIC_CHANNEL')
-debugChannel = os.getevn('DEBUG_CHANNEL')
+ericId = os.getenv('ERIC_ID')
+squishyId = os.getenv('SQUISHY_ID')
+lasId = os.getenv('LAS_ID')
+las2Id = os.getenv('LAS2_ID')
+debugChannel = os.getenv('DEBUG_CHANNEL')
+giantChannel = os.getenv('GIANT_CHANNEL')
+clientToken = os.getenv('CLIENT_ACCESS_TOKEN')
+lasChannel = os.getenv('LAS_CHANNEL')
 
 bot = commands.Bot(command_prefix='!')
-conn = psycopg2.connect(host="localhost", database="OeSL_team", user="postgres", password=dbpass)
+conn = psycopg2.connect(host="localhost", database="OeSL_team", user="postgres", password=str(dbpass))
 client = discord.Client()
 
 @bot.event
@@ -84,7 +93,7 @@ async def pool(ctx, *args):
                 try:
                     cur.execute("INSERT INTO " + ''.join(author).lower().replace(" ", "") + "_pool VALUES (%s);", (' '.join(champion), ))
                 except Exception as error:
-                    await ctx.send('Error: ' + error + ' type: ' + type(error))
+                    await ctx.send('Error: ' + str(error) + ' type: ' + type(error))
                 #SQL = 'INSERT INTO %s VALUES (%s);'
                 #data = (''.join(ctx.author.nick), ' '.join(champion))
                 #cur.execute(SQL, data)
@@ -100,10 +109,20 @@ async def pool(ctx, *args):
     except IndexError:
         message = 'Invalid number of arguments, see help message'
     except Exception as error:
-        message = 'Error: ' + error + ' type: ' + type(error)
+        message = 'Error: ' + str(error) + ' type: ' + type(error)
     conn.commit()
     cur.close() 
     await ctx.send(message)
+
+@bot.command(name='multigg')
+async def multigg(ctx, *args):
+    inputStr = ''.join(args)
+    playerNames = inputStr.replace(" ", "")
+    try:
+        await ctx.send('https://na.op.gg/multi/query='+(parse.quote(playerNames)))
+    except Exception as error:
+        await ctx.send('Error, check with @bartowski')
+        debug("Error " + str(error) + " type " + type(error))
 
 @bot.command(name='upcoming')
 async def upcoming(ctx):
@@ -153,7 +172,7 @@ async def teaminfo(ctx, *args):
 
 @bot.command(name='playerinfo')
 async def playerinfo(ctx, *args):
-    playername = '';
+    playername = ''
     if len(args) < 1:
         playername = ctx.author.nick.upper()
     else:
@@ -188,15 +207,70 @@ async def reboot(ctx):
     await ctx.send('failed')
 
 @bot.command(name='subscribe')
-async def subscribe(ctx):
+async def subscribe(ctx, arg):
     userid = str(ctx.author.id)
     if userid !=str(admin):
         return
-    await ctx.send('subbing')
-    pload = { 'hub.callback':'http://174.112.140.199:8000',  'hub.mode':'subscribe', 'hub.topic':'https://api.twitch.tv/helix/streams?user_id=50430698', 'hub.lease_seconds':'864000'}
-    pheaders = { 'Client-ID':clientId, 'Authorization':'Bearer ' + accessToken, 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36' }
-    r = requests.post('https://api.twitch.tv/helix/webhooks/hub', headers=pheaders, data=pload)
+    if(arg.strip() == 'eric'):
+        pload = { 'hub.callback':'http://174.112.140.199:8000',  'hub.mode':'subscribe', 'hub.topic':'https://api.twitch.tv/helix/streams?user_id=' + ericId, 'hub.lease_seconds':'864000'}
+        pheaders = { 'Client-ID':clientId, 'Authorization':'Bearer ' + accessToken, 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36' }
+        r = requests.post('https://api.twitch.tv/helix/webhooks/hub', headers=pheaders, data=pload)
+    elif(arg.strip() == 'squishy'):
+        pload = { 'hub.callback':'http://174.112.140.199:8000',  'hub.mode':'subscribe', 'hub.topic':'https://api.twitch.tv/helix/streams?user_id=' + squishyId, 'hub.lease_seconds':'864000'}
+        pheaders = { 'Client-ID':clientId, 'Authorization':'Bearer ' + accessToken, 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36' }
+        r = requests.post('https://api.twitch.tv/helix/webhooks/hub', headers=pheaders, data=pload)
+    elif(arg.strip() == 'las1'):
+        pload = { 'hub.callback':'http://174.112.140.199:8000',  'hub.mode':'subscribe', 'hub.topic':'https://api.twitch.tv/helix/streams?user_id=' + lasId, 'hub.lease_seconds':'864000'}
+        pheaders = { 'Client-ID':clientId, 'Authorization':'Bearer ' + accessToken, 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36' }
+        r = requests.post('https://api.twitch.tv/helix/webhooks/hub', headers=pheaders, data=pload)
+    elif(arg.strip() == 'las2'):
+        pload = { 'hub.callback':'http://174.112.140.199:8000',  'hub.mode':'subscribe', 'hub.topic':'https://api.twitch.tv/helix/streams?user_id=' + las2Id, 'hub.lease_seconds':'864000'}
+        pheaders = { 'Client-ID':clientId, 'Authorization':'Bearer ' + accessToken, 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36' }
+        r = requests.post('https://api.twitch.tv/helix/webhooks/hub', headers=pheaders, data=pload)
+
     await ctx.send(r.text)
+
+@bot.command(name='twitchid')
+async def twitch(ctx, arg):
+    userid = str(ctx.author.id)
+    if userid != str(admin):
+        return
+    pload = { 'login':arg }
+    pheaders = { 'Client-ID':clientId, 'Authorization':'Bearer ' + clientToken, 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36' }
+    r = requests.get('https://api.twitch.tv/helix/users', headers=pheaders, params=pload)
+    await ctx.send(r.text)
+
+@bot.command(name='file')
+async def file(ctx, arg):
+    #livetime = datetime.strptime("2020-05-14T17:40:55Z", "%Y-%m-%dT%H:%M:%SZ")
+    #f = open('laslive', 'wb')
+    #pickle.dump(livetime, f)
+    #f.close()
+    f = open('laslive', 'rb')
+    try:
+        #f.seek(0)
+        time = pickle.load(f)
+        await ctx.send(time)
+    except Exception as e:
+        await ctx.send(str(e))
+
+    f.close()
+
+@bot.command(name='render')
+async def render(ctx):
+    channel = ctx.channel.id
+    if channel == int(giantChannel):
+        pidFile = open('/home/ckealty/overviewer/render_save_pid.txt', 'r')
+        pid = pidFile.read()
+        try:
+            os.kill(int(pid), signal.SIGCONT)
+        except OSError:
+            subprocess.call('/home/ckealty/scripts/renderoverworld.sh', shell=True)
+            await ctx.send('starting render')
+        else:
+            await ctx.send('render already running')
+    else:
+        await ctx.send('wrong channel ' + channel)
 
 @bot.event
 async def on_command_error(ctx, error):
@@ -204,31 +278,61 @@ async def on_command_error(ctx, error):
         await ctx.send('Incorrect number of arguments')
 
 @async_to_sync
-async def liveNotification():
-    channel = bot.get_channel(ericChannel)
+async def ericLiveNotification():
+    channel = bot.get_channel(int(ericChannel))
     await channel.send('@everyone Eric has gone live! https://twitch.tv/RB_Eric')
+
+@bot.command(name='ericlive')
+async def ericlive(ctx):
+    channel = bot.get_channel(int(ericChannel))
+    await channel.send('@everyone Eric has gone live! https://twitch.tv/RB_Eric')
+
+@bot.command(name='laslive')
+async def laslive(ctx):
+    channel = bot.get_channel(int(lasChannel))
+    print(lasChannel)
+    print(channel)
+    await channel.send('@here LAS Esports has gone live! https://twitch.tv/LAS_esports')
+
+@async_to_sync
+async def squishyLiveNotification():
+    channel = bot.get_channel(int(ericChannel))
+    await channel.send('@everyone RB_Squishy has gone live! https://twitch.tv/RB_Squishy')
+
+@async_to_sync
+async def lasLiveNotification():
+    channel = bot.get_channel(int(lasChannel))
+    await channel.send('@here LAS_esports has gone live! https://twitch.tv/LAS_esports')
+
+@async_to_sync
+async def las2LiveNotification():
+    channel = bot.get_channel(int(lasChannel))
+    await channel.send('@here LAS_esports2 has gone live! https://twitch.tv/LAS_esports2')
 
 @async_to_sync
 async def debug(message):
-    channel = bot.get_channel(debugChannel)
-    await channel.send(message)
+    channel = bot.get_channel(int(debugChannel))
+    if not message:
+        await channel.send("no message")
+    else:
+        await channel.send("@everyone " + message)
 
 class BotHttpRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        query = urlparse(self.path).query
-        query_components = dict(qc.split("=") for qc in query.split("&"))
+  #      query = urlparse(self.path).query
+        query_components = dict(parse.parse_qsl(parse.urlsplit(self.path).query))
+ #       query_components = dict(qc.split("=") for qc in query.split("&"))
         topic = query_components.get("hub.topic", "")
 
         if unquote(topic) == 'https://api.twitch.tv/helix/streams?user_id=50430698':
             debug("received correct response")
-        else:
-            debug("incorrect: " + topic)
+
         self.send_response(200)
         self.end_headers()
         challenge = query_components.get("hub.challenge", "")
         if challenge != "":
             self.wfile.write(challenge.encode())
-        debug(query)
+        debug(urlparse(self.path).query)
 
     def do_POST(self):
         content_length = int(self.headers['Content-Length'])
@@ -237,22 +341,78 @@ class BotHttpRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         info = json.loads(body)
         debug(body.decode("utf-8"))
-        if len(info["data"]) == 0:
-            file = open('islive', 'wb')
-            pickle.dump('no', file)
-            file.close()
-        if "type" in info["data"][0]:
-            if info["data"][0]["type"] == "live":
-                file = open('islive', 'w+b')
-                try:
-                    livestr = pickle.load(file)
-                except (OSError, IOError, EOFError) as e:
-                    livestr = 'no'
-                if livestr == 'no':
-                    liveNotification()
-                    pickle.dump('yes', file)
-                file.close()
-                
+        try:
+            if len(info["data"]) == 0:
+                return
+            if "type" in info["data"][0]:
+                if info["data"][0]["type"] == "live":
+                    livetime = datetime.strptime(info["data"][0]["started_at"], "%Y-%m-%dT%H:%M:%SZ")
+                    if(int(info["data"][0]["user_id"]) == int(ericId)):
+                        try:
+                            with open('ericlive', 'rb') as picklefile:
+                                oldLivetime = pickle.load(picklefile)
+                        except (OSError, IOError, EOFError):
+                            with open('ericlive', 'wb') as picklefile:
+                                ericLiveNotification()
+                                pickle.dump(livetime, picklefile)
+                        else:
+                            if (oldLivetime + timedelta(hours=1)) < livetime:
+                                ericLiveNotification()
+                                with open('ericlive', 'wb') as picklefile:
+                                    pickle.dump(livetime, picklefile)
+                            else:
+                                debug("eric not new live, timestamp: " + str(livetime))
+                    if(int(info["data"][0]["user_id"]) == int(squishyId)):
+                        try:
+                            with open('squishylive', 'rb') as picklefile:
+                                oldLivetime = pickle.load(picklefile)
+                        except (OSError, IOError, EOFError) as er:
+                            debug("error " + str(er))
+                            with open('squishylive', 'wb') as picklefile:
+                                squishyLiveNotification()
+                                pickle.dump(livetime, picklefile)
+                        else:
+                            if ((oldLivetime + timedelta(hours=1)) < livetime):
+                                squishyLiveNotification()
+                                with open('squishylive', 'wb') as picklefile:
+                                    pickle.dump(livetime, picklefile)
+                            else:
+                                debug("squishy not new live, timestamp: " + str(livetime))
+                    if(int(info["data"][0]["user_id"]) == int(lasId)):
+                        debug("LAS esports notif live at " + str(livetime))
+                        try:
+                            with open('laslive', 'rb') as picklefile:
+                                oldLivetime = pickle.load(picklefile)
+                        except (OSError, IOError, EOFError) as er:
+                            debug("error" + str(er))
+                            lasLiveNotification()
+                            with open('laslive', 'wb') as picklefile:
+                                pickle.dump(livetime, picklefile)
+                        else:
+                            if (oldLivetime + timedelta(hours=1)) < livetime:
+                                lasLiveNotification()
+                                with open('laslive', 'wb') as picklefile:
+                                    pickle.dump(livetime, picklefile)
+                            else:
+                                debug("las not new live, timestamp: " + str(livetime))
+                    if(int(info["data"][0]["user_id"]) == int(las2Id)):
+                        debug("LAS esports 2 notif live at " + str(livetime))
+                        try:
+                            with open('las2live', 'rb') as picklefile:
+                                oldLivetime = pickle.load(picklefile)
+                        except (OSError, IOError, EOFError):
+                            las2LiveNotification()
+                            with open('las2live', 'wb') as picklefile:
+                                pickle.dump(livetime, picklefile)
+                        else:
+                            if oldLivetime < livetime:
+                                lasLiveNotification()
+                                with open('las2live', 'wb') as picklefile:
+                                    pickle.dump(livetime, picklefile)
+                            else:
+                                debug("las not new live, timestamp: " + livetime)
+        except Exception as e:
+            debug("error " + str(e))
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
     daemon_threads = True

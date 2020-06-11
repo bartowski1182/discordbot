@@ -41,6 +41,14 @@ debugChannel = os.getenv('DEBUG_CHANNEL')
 giantChannel = os.getenv('GIANT_CHANNEL')
 clientToken = os.getenv('CLIENT_ACCESS_TOKEN')
 lasChannel = os.getenv('LAS_CHANNEL')
+ericSub = int(os.getenv('ERIC_SUB'))
+squishySub = int(os.getenv('SQUISHY_SUB'))
+ericEmoji = int(os.getenv('ERIC_EMOJI'))
+squishyEmoji = int(os.getenv('SQUISHY_EMOJI'))
+ericGuild = int(os.getenv('ERIC_GUILD'))
+ericSubChannel = int(os.getenv('ERIC_SUB_CHANNEL'))
+ericNotifRole = int(os.getenv('ERIC_NOTIF_ROLE'))
+squishyNotifRole = int(os.getenv('SQUISHY_NOTIF_ROLE'))
 
 bot = commands.Bot(command_prefix='!')
 conn = psycopg2.connect(host="localhost", database="OeSL_team", user="postgres", password=str(dbpass))
@@ -49,6 +57,73 @@ client = discord.Client()
 @bot.event
 async def on_ready():
     print(f'{bot.user.name} is here to fuck shit up')
+
+@bot.event
+async def on_raw_reaction_remove(payload):
+    messageId = payload.message_id
+    if(messageId == ericSub):
+        if payload.emoji.id != ericEmoji:
+            return
+        rbGuild = bot.get_guild(ericGuild)
+        ericRole = rbGuild.get_role(ericNotifRole)
+        member = rbGuild.get_member(payload.user_id)
+        userRoles = member.roles
+        if ericRole in userRoles:
+            return
+        userRoles.append(ericRole)
+        await member.edit(roles=userRoles)
+    elif(messageId == squishySub):
+        rbGuild = bot.get_guild(ericGuild)
+        squishyRole = rbGuild.get_role(squishyNotifRole)
+        member = rbGuild.get_member(payload.user_id)
+        userRoles = member.roles
+        if squishyRole in userRoles:
+            return
+        userRoles.append(squishyRole)
+        await member.edit(roles=userRoles)
+
+@bot.event
+async def on_raw_reaction_add(payload):
+    messageId = payload.message_id
+    if(messageId == ericSub):
+        rbGuild = bot.get_guild(ericGuild)
+        ericRole = rbGuild.get_role(ericNotifRole)
+        member = rbGuild.get_member(payload.user_id)
+        userRoles = member.roles
+        if payload.emoji.id == ericEmoji:
+            if ericRole in userRoles:
+                userRoles.remove(ericRole)
+            await member.edit(roles=userRoles)
+        else:
+            message = await bot.get_channel(ericSubChannel).fetch_message(messageId)
+            await message.remove_reaction(payload.emoji, member)
+    if(messageId == squishySub):
+        rbGuild = bot.get_guild(ericGuild)
+        squishyRole = rbGuild.get_role(squishyNotifRole)
+        member = rbGuild.get_member(payload.user_id)
+        userRoles = member.roles
+        if payload.emoji.id == squishyEmoji:
+            if squishyRole in userRoles:
+                userRoles.remove(squishyRole)
+            await member.edit(roles=userRoles)
+        else:
+            message = await bot.get_channel(ericSubChannel).fetch_message(messageId)
+            await message.remove_reaction(payload.emoji, member)
+
+@bot.command(name='manual')
+async def manual(ctx):
+    """ rbGuild = bot.get_guild(ericGuild)
+    ericRole = rbGuild.get_role(ericNotifRole)
+    squishyRole = rbGuild.get_role(squishyNotifRole)
+    async for member in rbGuild.fetch_members(limit=100):
+        userRoles = member.roles
+        userRoles.append(ericRole)
+        userRoles.append(squishyRole)
+        await member.edit(roles=userRoles) """
+    channel = bot.get_channel(ericSubChannel)
+    message = await channel.fetch_message(ericSub)
+    await message.edit(content = 'Add the {} emoji here to unsubscribe from receiving live notifications for RB_Eric, or remove your reaction to resubscribe!'.format(bot.get_emoji(ericEmoji)))
+    return
 
 @bot.command(name='test')
 async def test(ctx, arg):
@@ -242,6 +317,9 @@ async def twitch(ctx, arg):
 
 @bot.command(name='file')
 async def file(ctx, arg):
+    userid = str(ctx.author.id)
+    if userid != str(admin):
+        return
     #livetime = datetime.strptime("2020-05-14T17:40:55Z", "%Y-%m-%dT%H:%M:%SZ")
     #f = open('laslive', 'wb')
     #pickle.dump(livetime, f)
@@ -285,7 +363,7 @@ async def ericLiveNotification():
 @bot.command(name='ericlive')
 async def ericlive(ctx):
     channel = bot.get_channel(int(ericChannel))
-    await channel.send('@everyone Eric has gone live! https://twitch.tv/RB_Eric')
+    await channel.send('@ericnotif Eric has gone live! https://twitch.tv/RB_Eric')
 
 @bot.command(name='laslive')
 async def laslive(ctx):
@@ -297,7 +375,7 @@ async def laslive(ctx):
 @async_to_sync
 async def squishyLiveNotification():
     channel = bot.get_channel(int(ericChannel))
-    await channel.send('@everyone RB_Squishy has gone live! https://twitch.tv/RB_Squishy')
+    await channel.send('@squishynotif RB_Squishy has gone live! https://twitch.tv/RB_Squishy')
 
 @async_to_sync
 async def lasLiveNotification():

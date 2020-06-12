@@ -357,13 +357,21 @@ async def on_command_error(ctx, error):
 
 @async_to_sync
 async def ericLiveNotification():
+    ericRole = bot.get_guild(ericGuild).get_role(ericNotifRole)
     channel = bot.get_channel(int(ericChannel))
-    await channel.send('@everyone Eric has gone live! https://twitch.tv/RB_Eric')
+    await channel.send('{} Eric has gone live! https://twitch.tv/RB_Eric'.format(ericRole.mention))
 
 @bot.command(name='ericlive')
 async def ericlive(ctx):
+    ericRole = bot.get_guild(ericGuild).get_role(ericNotifRole)
     channel = bot.get_channel(int(ericChannel))
-    await channel.send('@ericnotif Eric has gone live! https://twitch.tv/RB_Eric')
+    await channel.send('{} Eric has gone live! https://twitch.tv/RB_Eric'.format(ericRole.mention))
+
+@bot.command(name='squishylive')
+async def squishylive(ctx):
+    squishyRole = bot.get_guild(ericGuild).get_role(squishyNotifRole)
+    channel = bot.get_channel(int(ericChannel))
+    await channel.send('{} RB_Squishy has gone live! https://twitch.tv/RB_Squishy'.format(squishyRole.mention))
 
 @bot.command(name='laslive')
 async def laslive(ctx):
@@ -374,8 +382,9 @@ async def laslive(ctx):
 
 @async_to_sync
 async def squishyLiveNotification():
+    squishyRole = bot.get_guild(ericGuild).get_role(squishyNotifRole)
     channel = bot.get_channel(int(ericChannel))
-    await channel.send('@squishynotif RB_Squishy has gone live! https://twitch.tv/RB_Squishy')
+    await channel.send('{} RB_Squishy has gone live! https://twitch.tv/RB_Squishy'.format(squishyRole.mention))
 
 @async_to_sync
 async def lasLiveNotification():
